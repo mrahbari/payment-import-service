@@ -1,6 +1,8 @@
 package com.example.payment.web.filter;
 
 import com.example.shared.config.RateLimitProperties;
+import com.example.shared.error.ErrorResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
@@ -9,13 +11,17 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -26,6 +32,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
     private final RateLimitProperties properties;
+    private final ObjectMapper objectMapper;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -44,8 +51,15 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } else {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-            response.setContentType("application/json");
-            response.getWriter().write("{\"code\":\"RATE_LIMITED\",\"message\":\"Too many requests\"}");
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+            ErrorResponse body = new ErrorResponse(
+                    Instant.now(),
+                    "RATE_LIMITED",
+                    "Too many requests",
+                    request.getRequestURI() != null ? request.getRequestURI() : "/",
+                    MDC.get("requestId"));
+            objectMapper.writeValue(response.getOutputStream(), body);
         }
     }
 

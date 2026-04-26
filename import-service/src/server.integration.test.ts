@@ -149,7 +149,8 @@ describe("import HTTP (multipart → payment API)", () => {
           };
         });
 
-      nock(MOCK_PAYMENT).get("/api/v1/contracts/by-number/CNT-1001").twice().reply(200, {
+      // One GET per distinct contract number per file (in-memory cache deduplicates rows)
+      nock(MOCK_PAYMENT).get("/api/v1/contracts/by-number/CNT-1001").once().reply(200, {
         id: 1,
         clientId: 1,
         contractNumber: "CNT-1001",

@@ -21,6 +21,8 @@ import com.example.payment.exception.BadRequestException;
 import com.example.payment.exception.NotFoundException;
 import com.example.payment.mapper.PaymentMapper;
 import com.example.payment.repository.PaymentRepository;
+import com.example.payment.service.PaymentIdempotencyReplayService;
+import com.example.payment.service.impl.PaymentIdempotencyReplayServiceImpl;
 import com.example.payment.service.impl.PaymentServiceImpl;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.math.BigDecimal;
@@ -52,8 +54,14 @@ class PaymentServiceTest {
 
     @BeforeEach
     void setUp() {
+        PaymentIdempotencyReplayService idempotencyReplay =
+                new PaymentIdempotencyReplayServiceImpl(paymentRepository, new PaymentMapper());
         paymentService = new PaymentServiceImpl(
-                paymentRepository, contractQueryService, new PaymentMapper(), new SimpleMeterRegistry());
+                paymentRepository,
+                contractQueryService,
+                new PaymentMapper(),
+                idempotencyReplay,
+                new SimpleMeterRegistry());
         paymentService.initMeters();
     }
 

@@ -24,6 +24,10 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
+  health:
+    # Include JDBC DataSource in /actuator/health (readiness) when DB is the record store
+    db:
+      enabled: true
   metrics:
     tags:
       application: ${spring.application.name}

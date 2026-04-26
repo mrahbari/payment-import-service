@@ -8,6 +8,7 @@ import com.example.payment.exception.BadRequestException;
 import com.example.payment.exception.ConflictException;
 import com.example.payment.exception.NotFoundException;
 import com.example.payment.repository.ImportBatchRepository;
+import com.example.payment.service.ImportBatchRaceLookupService;
 import com.example.payment.service.ImportBatchService;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ImportBatchServiceImpl implements ImportBatchService {
 
     private final ImportBatchRepository importBatchRepository;
+    private final ImportBatchRaceLookupService importBatchRaceLookupService;
     private final MeterRegistry meterRegistry;
 
     private Timer importFinalizeTimer;
@@ -56,7 +58,7 @@ public class ImportBatchServiceImpl implements ImportBatchService {
             ImportBatch saved = importBatchRepository.save(batch);
             return toResponse(saved, false);
         } catch (DataIntegrityViolationException ex) {
-            ImportBatch raced = importBatchRepository
+            ImportBatch raced = importBatchRaceLookupService
                     .findByFileSha256(fileSha256)
                     .orElseThrow(() -> new BadRequestException("Could not register import batch"));
             if (raced.getStatus() == ImportBatchStatus.COMPLETED) {

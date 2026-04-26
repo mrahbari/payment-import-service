@@ -13,6 +13,8 @@ import com.example.payment.dto.ImportBatchResponse;
 import com.example.payment.exception.ConflictException;
 import com.example.payment.exception.NotFoundException;
 import com.example.payment.repository.ImportBatchRepository;
+import com.example.payment.service.ImportBatchRaceLookupService;
+import com.example.payment.service.impl.ImportBatchRaceLookupServiceImpl;
 import com.example.payment.service.impl.ImportBatchServiceImpl;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Optional;
@@ -33,7 +35,8 @@ class ImportBatchServiceTest {
 
     @BeforeEach
     void setUp() {
-        importBatchService = new ImportBatchServiceImpl(importBatchRepository, new SimpleMeterRegistry());
+        ImportBatchRaceLookupService raceLookup = new ImportBatchRaceLookupServiceImpl(importBatchRepository);
+        importBatchService = new ImportBatchServiceImpl(importBatchRepository, raceLookup, new SimpleMeterRegistry());
         importBatchService.initMeters();
     }
 

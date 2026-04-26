@@ -11,6 +11,7 @@ import com.example.payment.web.filter.CorrelationIdFilter;
 import com.example.payment.web.filter.RateLimitingFilter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.json.AutoConfigureJson;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
@@ -21,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
  * throttled. This narrow slice enables the filter with a capacity of 1 to assert 429 behavior.
  */
 @WebMvcTest(controllers = RootController.class)
+@AutoConfigureJson
 @Import({WebMvcConfig.class, CorrelationIdFilter.class, RateLimitingFilter.class})
 @TestPropertySource(
         properties = {
@@ -38,6 +40,7 @@ class RateLimitingFilterWebMvcTest {
         mockMvc.perform(get("/")).andExpect(status().isOk());
         mockMvc.perform(get("/"))
                 .andExpect(status().isTooManyRequests())
-                .andExpect(content().string(containsString("RATE_LIMITED")));
+                .andExpect(content().string(containsString("RATE_LIMITED")))
+                .andExpect(content().string(containsString("timestamp")));
     }
 }

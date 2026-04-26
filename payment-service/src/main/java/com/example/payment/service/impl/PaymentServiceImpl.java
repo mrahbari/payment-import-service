@@ -10,6 +10,7 @@ import com.example.payment.exception.NotFoundException;
 import com.example.payment.mapper.PaymentMapper;
 import com.example.payment.repository.PaymentRepository;
 import com.example.payment.service.ContractQueryService;
+import com.example.payment.service.PaymentIdempotencyReplayService;
 import com.example.payment.service.PaymentService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -32,6 +33,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final ContractQueryService contractQueryService;
     private final PaymentMapper paymentMapper;
+    private final PaymentIdempotencyReplayService idempotencyReplayService;
     private final MeterRegistry meterRegistry;
 
     private Counter paymentsCreated;
@@ -85,16 +87,14 @@ public class PaymentServiceImpl implements PaymentService {
             Payment saved = paymentRepository.save(payment);
             paymentsCreated.increment();
             MDC.put("paymentId", String.valueOf(saved.getId()));
-            log.info("Payment created: id={}, contractId={}, amount={}, type={}", 
-                    saved.getId(), contractId, saved.getAmount(), saved.getType());
+            log.info("Payment created: id={}, contractId={}, type={}", saved.getId(), contractId, saved.getType());
             return new PaymentCreationResult(paymentMapper.toResponse(saved), false);
         } catch (DataIntegrityViolationException ex) {
             if (idempotencyKey.isPresent()) {
                 log.info("Concurrent idempotency hit: re-fetching existing payment for contractId={}, key={}", 
                         contractId, idempotencyKey.get());
-                PaymentResponse replay = paymentRepository
-                        .findByContractIdAndIdempotencyKey(contractId, idempotencyKey.get())
-                        .map(paymentMapper::toResponse)
+                PaymentResponse replay = idempotencyReplayService
+                        .findReplayForIdempotencyKey(contractId, idempotencyKey.get())
                         .orElseThrow(() -> ex);
                 return new PaymentCreationResult(replay, true);
             }

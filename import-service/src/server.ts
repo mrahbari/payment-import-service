@@ -10,9 +10,9 @@ import client from "prom-client";
 import { config } from "./config.js";
 import {
   completeImportBatch,
+  createContractLookup,
   createPayment,
   createPaymentClient,
-  resolveContract,
   startImportBatch,
 } from "./http/paymentClient.js";
 import { ImportHttpException, paymentApiErrorMessageForRow, sendImportError } from "./http/errorResponse.js";
@@ -52,6 +52,7 @@ app.get("/", (_req, res) => {
       browser: "GET /payments/import — upload CSV/XML in the browser",
       api: "POST /payments/import — multipart field name: file",
     },
+    health: "/health",
     metrics: "/metrics",
     paymentApi: config.paymentApiBaseUrl,
   });
@@ -60,6 +61,12 @@ app.get("/", (_req, res) => {
 app.get("/metrics", async (_req, res) => {
   res.set("Content-Type", client.register.contentType);
   res.send(await client.register.metrics());
+});
+
+/** Liveness/readiness for orchestrators; does not call payment API (unlike a deep readiness probe). */
+app.get("/health", (_req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.status(200).type("application/json").json({ status: "UP", service: "import-service" });
 });
 
 const importUploadPage = join(process.cwd(), "static", "import.html");
@@ -161,6 +168,7 @@ async function handleUploadedFile(
 
   const readStream = createReadStream(tmpPath);
   const limit = pLimit(config.importRowConcurrency);
+  const resolveContractCached = createContractLookup(paymentClient, trace);
 
   await strategy.parseStream(readStream, (row, rowIndex) =>
     limit(async () => {
@@ -183,7 +191,7 @@ async function handleUploadedFile(
       }
       const v = validation.data;
       try {
-        const contract = await resolveContract(paymentClient, v.contractNumber, trace);
+        const contract = await resolveContractCached(v.contractNumber);
         const idem = `import:${fileSha256}:row:${rowIndex}`;
         await createPayment(
           paymentClient,

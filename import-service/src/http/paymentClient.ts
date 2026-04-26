@@ -70,6 +70,38 @@ export async function resolveContract(
   return res.data;
 }
 
+/**
+ * Caches contract number → (id, clientId) for the duration of a single file import, avoiding N HTTP
+ * calls when many rows share the same contract. Concurrent first hits for the same number share one
+ * in-flight request.
+ */
+export function createContractLookup(
+  client: AxiosInstance,
+  trace: TraceHeaders,
+): (contractNumber: string) => Promise<{ id: number; clientId: number }> {
+  const cache = new Map<string, { id: number; clientId: number }>();
+  const inflight = new Map<string, Promise<{ id: number; clientId: number }>>();
+
+  return (contractNumber: string) => {
+    const key = contractNumber.trim();
+    const fast = cache.get(key);
+    if (fast) {
+      return Promise.resolve(fast);
+    }
+    let pending = inflight.get(key);
+    if (!pending) {
+      pending = resolveContract(client, key, trace).then((c) => {
+        const value = { id: c.id, clientId: c.clientId };
+        cache.set(key, value);
+        inflight.delete(key);
+        return value;
+      });
+      inflight.set(key, pending);
+    }
+    return pending;
+  };
+}
+
 export async function createPayment(
   client: AxiosInstance,
   contractId: number,
