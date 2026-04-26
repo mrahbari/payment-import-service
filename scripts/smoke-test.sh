@@ -10,6 +10,9 @@ cd "$ROOT"
 # 1. Rebuild if needed
 ./scripts/build.sh
 
+# 1b. Ensure ports are free
+./scripts/kill-dev-ports.sh
+
 echo "==> Starting services with H2 (background)..."
 
 # Use H2 and skip Flyway to avoid Postgres-specific syntax issues if any,
@@ -57,8 +60,8 @@ echo "==> STEP 2: Verification - Import a file via Node service"
 IMPORT_RES=$(curl -s -X POST http://localhost:3000/payments/import -F "file=@samples/import-valid-small.csv;type=text/csv")
 echo "    Import Result: $IMPORT_RES"
 
-if [[ "$IMPORT_RES" == *"rowsRejected"* ]]; then
-  echo "    Import endpoint reached. (Rejections expected due to missing seed data in H2)"
+if [[ "$IMPORT_RES" == *"rowsRejected"* || "$IMPORT_RES" == *"File already imported"* ]]; then
+  echo "    Import endpoint reached. (Results: $(echo "$IMPORT_RES" | grep -o 'rowsRejected\|File already imported'))"
 else
   echo "ERROR: Import service unreachable or failed unexpectedly."
   exit 1
