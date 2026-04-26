@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<payments>
+  <payment>
+    <payment_date>2024-06-01</payment_date>
+    <amount>75.00</amount>
+    <type>incoming</type>
+    <contract_number>CNT-1001</contract_number>
+  </payment>
+</payments>
