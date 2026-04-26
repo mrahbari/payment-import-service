@@ -1,0 +1,108 @@
+# Payment (Spring Boot). Database credentials: create Secret `payment-db` (see docs/container-and-k8s.md).
+# Example:
+#   kubectl -n payment-import create secret generic payment-db \
+#     --from-literal=DATABASE_URL='jdbc:postgresql://postgres:5432/payment_db' \
+#     --from-literal=DATABASE_USER=user \
+#     --from-literal=DATABASE_PASSWORD=change-me
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment-service
+  labels:
+    app.kubernetes.io/name: payment-service
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: payment-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment-service
+  labels:
+    app.kubernetes.io/name: payment-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: payment-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: payment-service
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: payment-service
+          image: payment-service:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SERVER_PORT
+              value: "8080"
+            - name: IMPORT_SERVICE_PUBLIC_BASE_URL
+              value: "http://import-service.payment-import.svc.cluster.local:3000"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: payment-db
+                  key: DATABASE_URL
+            - name: DATABASE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: payment-db
+                  key: DATABASE_USER
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: payment-db
+                  key: DATABASE_PASSWORD
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
