@@ -1,0 +1,59 @@
+spring:
+  application:
+    name: payment-service
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/payment_db}
+    username: ${DATABASE_USER:user}
+    password: ${DATABASE_PASSWORD:pass}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  startup:
+    print-urls: true
+  import-service:
+    public-base-url: ${IMPORT_SERVICE_PUBLIC_BASE_URL:http://localhost:3000}
+  rate-limit:
+    capacity: ${RATE_LIMIT_CAPACITY:120}
+    refill-per-minute: ${RATE_LIMIT_REFILL_PER_MINUTE:120}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      contractLookup:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+
+logging:
+  level:
+    root: INFO
+    com.example.payment: INFO

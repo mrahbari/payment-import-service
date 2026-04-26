@@ -1,0 +1,13 @@
+spring:
+  flyway:
+    enabled: true
+
+app:
+  startup:
+    print-urls: false
+  rate-limit:
+    enabled: false
+
+logging:
+  level:
+    org.springframework: WARN
