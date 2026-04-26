@@ -1,0 +1,3 @@
+contract_number,amount,type,payment_date
+CNT-9999,100.50,incoming,2026-04-25
+CNT-1001,50.00,outgoing,2026-04-25

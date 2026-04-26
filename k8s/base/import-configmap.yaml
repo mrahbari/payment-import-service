@@ -1,0 +1,12 @@
+# Non-secret import-service settings. Point PAYMENT at the in-cluster Service DNS name.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: import-config
+data:
+  PORT: "3000"
+  HOST: "0.0.0.0"
+  # http://<Service.metadata.name>.<namespace>.svc.cluster.local:<port>
+  PAYMENT_API_BASE_URL: "http://payment-service.payment-import.svc.cluster.local:8080"
+  AXIOS_RETRIES: "4"
+  AXIOS_TIMEOUT_MS: "30000"

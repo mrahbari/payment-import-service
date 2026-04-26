@@ -1,0 +1,20 @@
+# Base manifests for the payment and import services.
+# Set real images: kubectl kustomize k8s/base | sed ... or use overlays with images.newName/newTag
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: payment-import
+resources:
+  - namespace.yaml
+  - import-configmap.yaml
+  - payment-service.yaml
+  - import-service.yaml
+images:
+  - name: payment-service
+    newName: payment-service
+    newTag: local
+  - name: import-service
+    newName: import-service
+    newTag: local
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: payment-import

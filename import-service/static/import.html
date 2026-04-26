@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Import payments (CSV / XML)</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f6f7f9;
+        --card: #fff;
+        --text: #1a1d26;
+        --muted: #5c6578;
+        --border: #d8dde6;
+        --accent: #2563eb;
+        --accent-hover: #1d4ed8;
+        --err-bg: #fef2f2;
+        --err-border: #fecaca;
+        --ok-bg: #f0fdf4;
+        --ok-border: #bbf7d0;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #111418;
+          --card: #1a1f28;
+          --text: #e8eaef;
+          --muted: #9aa3b5;
+          --border: #2d3544;
+          --accent: #3b82f6;
+          --accent-hover: #60a5fa;
+          --err-bg: #2c1518;
+          --err-border: #7f1d1d;
+          --ok-bg: #14231a;
+          --ok-border: #166534;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+      }
+      main {
+        max-width: 36rem;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 3rem;
+      }
+      h1 {
+        font-size: 1.35rem;
+        font-weight: 650;
+        margin: 0 0 0.35rem;
+        letter-spacing: -0.02em;
+      }
+      .lead {
+        color: var(--muted);
+        font-size: 0.95rem;
+        margin: 0 0 1.25rem;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 1.25rem 1.35rem;
+        margin-bottom: 1.25rem;
+      }
+      label.file-label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+      }
+      input[type="file"] {
+        width: 100%;
+        font-size: 0.875rem;
+      }
+      .actions {
+        margin-top: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        align-items: center;
+      }
+      button {
+        font: inherit;
+        font-weight: 600;
+        padding: 0.55rem 1.15rem;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        background: var(--accent);
+        color: #fff;
+      }
+      button:hover:not(:disabled) {
+        background: var(--accent-hover);
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      .hint {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      #status {
+        font-size: 0.875rem;
+        min-height: 1.25rem;
+        margin-bottom: 0.5rem;
+        color: var(--muted);
+      }
+      pre#out {
+        margin: 0;
+        padding: 1rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        line-height: 1.45;
+        overflow: auto;
+        max-height: 50vh;
+        white-space: pre-wrap;
+        word-break: break-word;
+        border: 1px solid var(--border);
+        background: var(--bg);
+      }
+      pre#out.ok {
+        border-color: var(--ok-border);
+        background: var(--ok-bg);
+      }
+      pre#out.err {
+        border-color: var(--err-border);
+        background: var(--err-bg);
+      }
+      code {
+        font-size: 0.88em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Import payments</h1>
+      <p class="lead">
+        Upload a <strong>CSV</strong> or <strong>XML</strong> file. The import service posts rows to the payment API (contract
+        <code>CNT-1001</code> must exist — run <code>docs/seed.sql</code> first; see README).
+      </p>
+
+      <div class="card">
+        <form id="upload-form">
+          <label class="file-label" for="file">File</label>
+          <input
+            id="file"
+            type="file"
+            name="file"
+            accept=".csv,.xml,application/xml,text/csv,text/xml"
+            required
+          />
+          <div class="actions">
+            <button type="submit" id="submit-btn">Import</button>
+            <span class="hint">Field name <code>file</code> · POST <code>/payments/import</code></span>
+          </div>
+        </form>
+      </div>
+
+      <div id="status" aria-live="polite"></div>
+      <pre id="out" hidden></pre>
+    </main>
+
+    <script>
+      (function () {
+        const form = document.getElementById("upload-form");
+        const fileInput = document.getElementById("file");
+        const btn = document.getElementById("submit-btn");
+        const statusEl = document.getElementById("status");
+        const out = document.getElementById("out");
+
+        form.addEventListener("submit", async function (e) {
+          e.preventDefault();
+          const file = fileInput.files && fileInput.files[0];
+          if (!file) return;
+
+          out.hidden = true;
+          out.textContent = "";
+          out.className = "";
+          statusEl.textContent = "Uploading…";
+          btn.disabled = true;
+
+          const body = new FormData();
+          body.append("file", file, file.name);
+
+          try {
+            const res = await fetch("/payments/import", {
+              method: "POST",
+              body: body,
+            });
+            const text = await res.text();
+            let json;
+            try {
+              json = JSON.parse(text);
+            } catch {
+              json = { raw: text };
+            }
+
+            out.hidden = false;
+            if (res.ok) {
+              out.className = "ok";
+              statusEl.textContent = "Done — HTTP " + res.status;
+            } else {
+              out.className = "err";
+              statusEl.textContent = "Error — HTTP " + res.status;
+            }
+            out.textContent = JSON.stringify(json, null, 2);
+          } catch (err) {
+            out.hidden = false;
+            out.className = "err";
+            statusEl.textContent = "Request failed";
+            out.textContent = err instanceof Error ? err.message : String(err);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

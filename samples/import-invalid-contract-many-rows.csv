@@ -1,0 +1,7 @@
+payment_date,amount,type,contract_number
+2024-01-01,1.01,incoming,CNT-2001
+2024-01-02,1.02,outgoing,CNT-2001
+2024-01-03,1.03,incoming,CNT-2001
+2024-01-04,1.04,outgoing,CNT-2001
+2024-01-05,1.05,incoming,CNT-2001
+2024-01-06,1.06,outgoing,CNT-2001

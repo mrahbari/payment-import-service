@@ -1,0 +1,5 @@
+payment_date,amount,type,contract_number
+2024-06-01,50.00,incoming,CNT-1001
+2024-06-02,25.50,outgoing,CNT-1001
+2024-06-10,100.01,incoming,CNT-1001
+2024-06-11,100.02,incoming,CNT-1001

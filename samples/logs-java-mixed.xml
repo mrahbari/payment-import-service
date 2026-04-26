@@ -1,0 +1,16 @@
+<payments>
+  <!-- Triggers Java 404 (Contract Not Found) -->
+  <payment>
+    <contractNumber>CNT-UNKNOWN</contractNumber>
+    <amount>999.00</amount>
+    <type>incoming</type>
+    <paymentDate>2026-04-25</paymentDate>
+  </payment>
+  <!-- Triggers Java 200 (Success) -->
+  <payment>
+    <contractNumber>CNT-1001</contractNumber>
+    <amount>123.45</amount>
+    <type>outgoing</type>
+    <paymentDate>2026-04-25</paymentDate>
+  </payment>
+</payments>

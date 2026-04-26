@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<payments>
+  <payment>
+    <payment_date>2024-06-01</payment_date>
+    <amount>10.00</amount>
+    <type>incoming</type>
+    <contract_number>CNT-1001</contract_number>
+  </payment>
+  <payment>
+    <payment_date>2024-02-30</payment_date>
+    <amount>10.00</amount>
+    <type>incoming</type>
+    <contract_number>CNT-1001</contract_number>
+  </payment>
+  <payment>
+    <payment_date>2024-06-02</payment_date>
+    <amount>20.00</amount>
+    <type>incoming</type>
+    <contract_number></contract_number>
+  </payment>
+  <payment>
+    <payment_date>2024-06-03</payment_date>
+    <amount>30.00</amount>
+    <type>incoming</type>
+    <contract_number>CNT-1001</contract_number>
+  </payment>
+  <payment>
+    <payment_date>2024-06-04</payment_date>
+    <amount>40.00</amount>
+    <type>refund</type>
+    <contract_number>CNT-1001</contract_number>
+  </payment>
+  <payment>
+    <payment_date>2024-06-05</payment_date>
+    <amount>0</amount>
+    <type>incoming</type>
+    <contract_number>CNT-1001</contract_number>
+  </payment>
+</payments>
