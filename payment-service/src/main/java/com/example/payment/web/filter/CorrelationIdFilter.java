@@ -21,27 +21,34 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
     public static final String HEADER_TRACE = "X-Trace-Id";
     public static final String HEADER_REQUEST = "X-Request-Id";
 
+    private static final String MDC_TRACE_ID = "traceId";
+    private static final String MDC_REQUEST_ID = "requestId";
+
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
             throws ServletException, IOException {
+
+        String traceId = resolveOrGenerate(request.getHeader(HEADER_TRACE));
+        String requestId = resolveOrGenerate(request.getHeader(HEADER_REQUEST));
+
         try {
-            String traceId = request.getHeader(HEADER_TRACE);
-            if (traceId == null || traceId.isBlank()) {
-                traceId = UUID.randomUUID().toString();
-            }
-            String requestId = request.getHeader(HEADER_REQUEST);
-            if (requestId == null || requestId.isBlank()) {
-                requestId = UUID.randomUUID().toString();
-            }
-            MDC.put("traceId", traceId);
-            MDC.put("requestId", requestId);
+            MDC.put(MDC_TRACE_ID, traceId);
+            MDC.put(MDC_REQUEST_ID, requestId);
+
             response.setHeader(HEADER_TRACE, traceId);
             response.setHeader(HEADER_REQUEST, requestId);
+
             filterChain.doFilter(request, response);
         } finally {
-            MDC.remove("traceId");
-            MDC.remove("requestId");
-            MDC.remove("paymentId");
+            MDC.clear();
         }
+    }
+
+    private String resolveOrGenerate(String value) {
+        return (value == null || value.isBlank())
+                ? UUID.randomUUID().toString()
+                : value;
     }
 }
